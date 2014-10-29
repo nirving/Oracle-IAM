@@ -1,0 +1,7 @@
+forge "https://forgeapi.puppetlabs.com"
+mod "biemond/jdk7"
+mod "biemond/oradb"
+mod "biemond/orautils"
+mod "erwbgy/limits"
+mod "fiddyspence/sysctl"
+mod 'biemond/orawls'

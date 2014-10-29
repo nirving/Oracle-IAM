@@ -1,0 +1,190 @@
+---
+
+hosts:
+  'oimdb.example.com':
+    ip:                "10.10.10.9"
+    host_aliases:      'oimdb'
+  'localhost':
+    ip:                "127.0.0.1"
+    host_aliases:      'localhost.localdomain,localhost4,localhost4.localdomain4'
+  'oim1admin.example.com':
+    ip:                "10.10.10.61"
+    host_aliases:      'oim1admin'
+
+
+# global WebLogic vars
+wls_oracle_base_home_dir: &wls_oracle_base_home_dir "/oracle"
+wls_weblogic_user:        &wls_weblogic_user        "weblogic"
+wls_weblogic_home_dir:    &wls_weblogic_home_dir    "/oracle/app/middleware/wlserver_10.3"
+wls_middleware_home_dir:  &wls_middleware_home_dir  "/oracle/app/middleware"
+wls_version:              &wls_version              "1036"
+
+# global OS vars
+wls_os_user:              &wls_os_user              "oracle"
+wls_os_group:             &wls_os_group             "dba"
+wls_download_dir:         &wls_download_dir         "/var/tmp/install"
+wls_source:               &wls_source               "/oracle/install"
+wls_jdk_home_dir:         &wls_jdk_home_dir         "/usr/java/latest"
+wls_log_dir:              &wls_log_dir              "/var/log/weblogic"
+wls_temp_dir:		  &wls_temp_dir		    "/oracle/tmp"
+
+wls_jsse_enabled:         true
+
+#WebLogic installation variables 
+orawls::weblogic::version:              *wls_version
+orawls::weblogic::filename:             "wls1036_generic.jar"
+
+orawls::weblogic::middleware_home_dir:  *wls_middleware_home_dir
+orawls::weblogic::log_output:           true
+
+# hiera default anchors
+orawls::weblogic::jdk_home_dir:         *wls_jdk_home_dir
+orawls::weblogic::oracle_base_home_dir: *wls_oracle_base_home_dir
+orawls::weblogic::os_user:              *wls_os_user
+orawls::weblogic::os_group:             *wls_os_group
+orawls::weblogic::download_dir:         *wls_download_dir
+orawls::weblogic::source:               *wls_source
+orawls::weblogic::remote_file:          false
+orawls::weblogic::temp_directory:       "/oracle/tmp"
+
+# patches for WebLogic 10.3.6
+bsu_instances:
+  'T5F1':
+    patch_id:                "T5F1"
+    patch_file:              "p18040640_1036_Generic.zip"
+    log_output:              true
+    remote_file:             false
+
+# handy WebLogic scripts in /opt/scripts/wls
+orautils::osOracleHomeParam:      *wls_oracle_base_home_dir
+orautils::oraInventoryParam:      "/opt/oracle/oraInventory"
+orautils::osLogFolderParam:       *wls_log_dir
+orautils::osDownloadFolderParam:  *wls_download_dir
+orautils::osMdwHomeParam:         *wls_middleware_home_dir
+orautils::osWlHomeParam:          *wls_weblogic_home_dir
+orautils::oraUserParam:           *wls_os_user
+orautils::jsseEnabledParam:       true
+
+orawls::weblogic::log_output:   true
+
+orautils::osDomainTypeParam:      "oim"
+orautils::osDomainParam:          "iamDomain"
+orautils::osDomainPathParam:      "/oracle/app/middleware/user_projects/domains/iamDomain"
+orautils::nodeMgrPathParam:       "/oracle/app/middleware/wlserver_10.3/server/bin"
+
+orautils::nodeMgrPortParam:       5556
+orautils::nodeMgrAddressParam:    '127.0.0.1'
+orautils::wlsUserParam:           "weblogic"
+orautils::wlsPasswordParam:       "weblogic1"
+orautils::wlsAdminServerParam:    "AdminServer"
+
+logoutput:                     &logoutput                     true
+
+# FMW installation on top of WebLogic 10.3.6
+fmw_installations:
+  'oim11.1.2.2':
+    fmw_product:             "oim"
+    fmw_file1:               "ofm_iam_generic_11.1.2.2.0_disk1_1of2.zip"
+    fmw_file2:               "ofm_iam_generic_11.1.2.2.0_disk1_2of2.zip"
+    log_output:              true
+    remote_file:             false
+  'soaPS6':
+    fmw_product:             "soa"
+    fmw_file1:               "ofm_soa_generic_11.1.1.7.0_disk1_1of2.zip"
+    fmw_file2:               "ofm_soa_generic_11.1.1.7.0_disk1_2of2.zip"
+    log_output:              true
+    remote_file:             false
+
+# when you have just one domain on a server
+domain_name:                "iamDomain"
+domain_adminserver:         "AdminServer"
+domain_adminserver_address: "127.0.0.1"
+domain_adminserver_port:    7001
+domain_nodemanager_port:    5556
+domain_wls_password:        "weblogic1"
+domain_user_config_file:    "/home/oracle/oracle-iamDomain-WebLogicConfig.properties"
+domain_user_key_file:       "/home/oracle/oracle-iamDomain-WebLogicKey.properties"
+
+
+# create a standard domain
+domain_instances:
+  'iamDomain':
+    version:                  1112
+    domain_template:          "oim"
+    development_mode:         true
+    log_output:               *logoutput
+    repository_database_url:  "jdbc:oracle:thin:@localhost:1521/orcl.darkedges.local"
+    repository_prefix:        "DEV"
+    repository_password:      "Welcome01"
+    repository_sys_password:  "Welcome01"
+    rcu_database_url:         "localhost:1521/orcl.darkedges.local"
+
+# create and startup the nodemanager
+nodemanager_instances:
+  'nodemanager':
+     nodemanager_address:  "127.0.0.1"
+     log_output:           *logoutput
+
+# startup adminserver for extra configuration
+control_instances:
+  'startWLSAdminServer':
+     domain_name:          "iamDomain"
+     server_type:          'admin'
+     target:               'Server'
+     server:               'AdminServer'
+     action:               'start'
+     log_output:           *logoutput
+
+control_managed_instances:
+  'startWLSSoaServer':
+     domain_name:          "iamDomain"
+     server_type:          'managed'
+     target:               'Server'
+     server:               'soa_server1'
+     action:               'start'
+     log_output:           *logoutput
+  'startWLSOimServer':
+     domain_name:          "iamDomain"
+     server_type:          'managed'
+     target:               'Server'
+     server:               'oim_server1'
+     action:               'start'
+     log_output:           *logoutput
+
+# create password file for WLST utility
+userconfig_instances:
+  'oudDomain':
+     log_output:           *logoutput
+     user_config_dir:      '/home/oracle'
+
+oimconfig_instances:
+  'oimDomain':
+    version:                    1112
+    oim_home:                   '/oracle/app/middleware/Oracle_IDM1'
+    server_config:              true
+    oim_password:               'Welcome01'
+    remote_config:              false
+    keystore_password:          'Welcome01'
+    design_config:              false
+    oimserver_hostname:         'localhost'
+    oimserver_port:             '14000'
+    repository_database_url:    "localhost:1521:orcl.darkedges.local"
+    repository_prefix:          "DEV"
+    repository_password:        "Welcome01"
+
+repository_database_url:        jdbc:oracle:thin:@localhost:1521/orcl.darkedges.local
+rcu_database_url:               localhost:1521/orcl.darkedges.local
+
+fmwlogdir_instances:
+  'AdminServer':
+     log_output:      true
+     server:          'AdminServer'
+  'soa_server1':
+     log_output:      true
+     server:          'soa_server1'
+  'oim_server1':
+     log_output:      true
+     server:          'oim_server1'
+  'oam_server1':
+     log_output:      true
+     server:          'oam_server1'

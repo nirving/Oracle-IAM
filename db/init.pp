@@ -149,4 +149,25 @@ class oradb_11g {
       dbName                  => hiera('oracle_database_name'),
       require                 => Oradb::Dbactions['start oraDb'],
     }
+    
+    oradb::rcu{ 'DEV_RCU':
+      rcuFile                => 'ofm_rcu_linux_11.1.2.2.0_64_disk1_1of1.zip',
+      product                => hiera('repository_type'),
+      version                => '11.1.2.2',
+      user                   => hiera('oracle_os_user'),
+      group                  => hiera('oracle_os_group'),
+      downloadDir            => hiera('oracle_download_dir'),
+      action                 => 'create',
+      oracleHome             => hiera('oracle_home_dir'),
+      dbServer               => hiera('oracle_database_host'),
+      dbService              => hiera('oracle_database_service_name'),
+      sysPassword            => hiera('oracle_database_sys_password'),
+      schemaPrefix           => hiera('repository_prefix'),
+      reposPassword          => hiera('repository_password'),
+      tempTablespace         => 'TEMP',
+      puppetDownloadMntPoint => hiera('oracle_source'),
+      remoteFile             => true,
+      logoutput              => true,
+      require                => Oradb::Dbactions['start oraDb'],
+    }
 }
